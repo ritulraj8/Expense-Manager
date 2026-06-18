@@ -3,14 +3,7 @@ import sqlite3
 conn = sqlite3.connect("ritul.db")
 cursor = conn.cursor()
 
-cursor.execute("""
-select * from CATEGORY;
-""")
+cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+print(cursor.fetchall())
 
-for row in cursor.fetchall():
-    print(row)
-
-conn.commit()
 conn.close()
-
-print("Database and table created!")
