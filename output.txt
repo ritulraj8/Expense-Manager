@@ -12,9 +12,9 @@ TABLE: sqlite_sequence
 ============================================================
 Columns: ['name', 'seq']
 
-('ACCOUNTS', 2)
+('ACCOUNTS', 1)
 ('CATEGORY', 1)
-('TRANSACTIONS', 2)
+('TRANSACTIONS', 1)
 
 
 ============================================================
@@ -23,7 +23,6 @@ TABLE: ACCOUNTS
 Columns: ['id', 'name', 'open_balance']
 
 (1, 'City Bank', 0.0)
-(2, 'Income', 0.0)
 
 
 ============================================================
@@ -31,6 +30,5 @@ TABLE: TRANSACTIONS
 ============================================================
 Columns: ['id', 'type', 'transaction_date', 'debit_account_id', 'credit_account_id', 'income_category_id', 'expense_category_id', 'amount', 'narration']
 
-(1, 'income', '2026-06-24', 1, 2, 1, None, 1000.0, 'selling pocket computer')
-(2, 'income', '2026-06-24', 1, 2, 1, None, 1000.0, 'selling pocket computer')
+(1, 'income', '2026-06-25', None, 1, 1, None, 1000.0, 'selling pocket computer')
 

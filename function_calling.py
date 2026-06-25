@@ -58,8 +58,8 @@ def add_income(amount: float, account: str, category: str, narration: str = None
     conn = sqlite3.connect("ritul.db")
     cursor = conn.cursor()
     try:
-        debit_acc_id = get_or_create_account(cursor, account)
-        credit_acc_id = get_or_create_account(cursor, "Income")
+        debit_acc_id = None
+        credit_acc_id = get_or_create_account(cursor, account)
         cat_id = get_or_create_category(cursor, category, "income")
         cursor.execute("""
             INSERT INTO TRANSACTIONS (type, transaction_date, debit_account_id, credit_account_id, income_category_id, amount, narration)
@@ -86,8 +86,8 @@ def add_expense(amount: float, account: str, category: str, narration: str = Non
     conn = sqlite3.connect("ritul.db")
     cursor = conn.cursor()
     try:
-        debit_acc_id = get_or_create_account(cursor, "Expense")
-        credit_acc_id = get_or_create_account(cursor, account)
+        debit_acc_id = get_or_create_account(cursor, account)
+        credit_acc_id = None
         cat_id = get_or_create_category(cursor, category, "expense")
         cursor.execute("""
             INSERT INTO TRANSACTIONS (type, transaction_date, debit_account_id, credit_account_id, expense_category_id, amount, narration)
