@@ -5,6 +5,9 @@ TABLE: CATEGORY
 Columns: ['id', 'type', 'name']
 
 (1, 'income', 'Sales')
+(2, 'income', 'Selling a laptop')
+(3, 'expense', 'AC')
+(4, 'income', 'Daily wages')
 
 
 ============================================================
@@ -12,9 +15,9 @@ TABLE: sqlite_sequence
 ============================================================
 Columns: ['name', 'seq']
 
-('ACCOUNTS', 1)
-('CATEGORY', 1)
-('TRANSACTIONS', 1)
+('ACCOUNTS', 4)
+('CATEGORY', 4)
+('TRANSACTIONS', 4)
 
 
 ============================================================
@@ -23,6 +26,9 @@ TABLE: ACCOUNTS
 Columns: ['id', 'name', 'open_balance']
 
 (1, 'City Bank', 0.0)
+(2, 'Kotak Bank', 0.0)
+(3, 'HFBC Bank', 0.0)
+(4, 'Daily wages by cash', 0.0)
 
 
 ============================================================
@@ -31,4 +37,7 @@ TABLE: TRANSACTIONS
 Columns: ['id', 'type', 'transaction_date', 'debit_account_id', 'credit_account_id', 'income_category_id', 'expense_category_id', 'amount', 'narration']
 
 (1, 'income', '2026-06-25', None, 1, 1, None, 1000.0, 'selling pocket computer')
+(2, 'income', 'null', None, 2, 2, None, 1000.0, 'selling pocket computer')
+(3, 'expense', '2026-06-23', 3, None, None, 3, 250.0, 'AMC cost of AC')
+(4, 'income', '2026-06-25', None, 4, 4, None, 100.0, 'Paid $100 as Daily wages by cash')
 

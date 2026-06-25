@@ -3,8 +3,6 @@ from llama_cpp import Llama
 import json
 import sqlite3
 from datetime import datetime
-
-
 # ---------------------------
 # Model Loading
 # ---------------------------
@@ -362,7 +360,7 @@ def main():
     messages = [
         {
             "role": "user",
-            "content": "Please add an income transaction for $1000 received for selling pocket computer. Amount went into City Bank account. Income category is Sales."
+            "content": "Paid $100 as Daily wages by cash"
         }
     ]
 
