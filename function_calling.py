@@ -2,6 +2,7 @@ from huggingface_hub import hf_hub_download
 from llama_cpp import Llama
 import json
 import sqlite3
+import re
 from datetime import datetime
 # ---------------------------
 # Model Loading
@@ -53,6 +54,8 @@ def add_income(amount: float, account: str, category: str, narration: str = None
     """
     if not date:
         date = datetime.now().strftime("%Y-%m-%d")
+    if not narration:
+        narration = f"Income of ${amount} to {account} under category {category}"
     conn = sqlite3.connect("ritul.db")
     cursor = conn.cursor()
     try:
@@ -81,6 +84,8 @@ def add_expense(amount: float, account: str, category: str, narration: str = Non
     """
     if not date:
         date = datetime.now().strftime("%Y-%m-%d")
+    if not narration:
+        narration = f"Expense of ${amount} from {account} under category {category}"
     conn = sqlite3.connect("ritul.db")
     cursor = conn.cursor()
     try:
@@ -109,6 +114,8 @@ def add_transfer(amount: float, from_account: str, to_account: str, narration: s
     """
     if not date:
         date = datetime.now().strftime("%Y-%m-%d")
+    if not narration:
+        narration = f"Transfer of ${amount} from {from_account} to {to_account}"
     conn = sqlite3.connect("ritul.db")
     cursor = conn.cursor()
     try:
@@ -244,7 +251,55 @@ tools = [
 # Tool Execution Loop
 # ---------------------------
 
+def has_date(text):
+    if not isinstance(text, str):
+        return False
+    # Check for YYYY-MM-DD or DD/MM/YYYY or MM/DD/YYYY
+    if re.search(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b', text):
+        return True
+    if re.search(r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b', text):
+        return True
+
+    # Check for month names (e.g. June, Jun, etc.)
+    months = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december",
+        "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "oct", "nov", "dec"
+    ]
+    for month in months:
+        if re.search(r'\b' + month + r'\b', text, re.IGNORECASE):
+            return True
+
+    # Check for relative date terms
+    relative_terms = ["today", "yesterday", "tomorrow", "tonight"]
+    for term in relative_terms:
+        if re.search(r'\b' + term + r'\b', text, re.IGNORECASE):
+            return True
+
+    # Check for days of the week
+    days = [
+        "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+        "mon", "tue", "wed", "thu", "fri", "sat", "sun"
+    ]
+    for day in days:
+        if re.search(r'\b' + day + r'\b', text, re.IGNORECASE):
+            return True
+
+    # Check for ordinal days (e.g., 24th, 1st, 2nd, 3rd)
+    if re.search(r'\b\d{1,2}(st|nd|rd|th)\b', text, re.IGNORECASE):
+        return True
+
+    return False
+
+
 def run_tool_calls(llm, messages):
+    for msg in messages:
+        if msg.get("role") == "user" and isinstance(msg.get("content"), str):
+            if not has_date(msg["content"]):
+                current_date = datetime.now().strftime("%Y-%m-%d")
+                msg["content"] = f"{msg['content']} (Today's date: {current_date})"
+                print(f"Date was not present in prompt. Appended today's date: {current_date}")
+
     while True:
 
         response = llm.create_chat_completion(
@@ -360,7 +415,7 @@ def main():
     messages = [
         {
             "role": "user",
-            "content": "Paid $100 as Daily wages by cash"
+            "content": "I have sent $2000 from Canara bank to SBI bank"
         }
     ]
 

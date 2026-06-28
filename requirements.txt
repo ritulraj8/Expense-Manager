@@ -1,0 +1,7 @@
+huggingface_hub
+llama-cpp-python
+customtkinter
+SpeechRecognition
+pyttsx3
+sounddevice
+numpy

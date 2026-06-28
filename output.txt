@@ -8,6 +8,8 @@ Columns: ['id', 'type', 'name']
 (2, 'income', 'Selling a laptop')
 (3, 'expense', 'AC')
 (4, 'income', 'Daily wages')
+(5, 'income', '')
+(6, 'income', 'Sale of furniture')
 
 
 ============================================================
@@ -15,9 +17,9 @@ TABLE: sqlite_sequence
 ============================================================
 Columns: ['name', 'seq']
 
-('ACCOUNTS', 4)
-('CATEGORY', 4)
-('TRANSACTIONS', 4)
+('ACCOUNTS', 9)
+('CATEGORY', 6)
+('TRANSACTIONS', 11)
 
 
 ============================================================
@@ -29,6 +31,11 @@ Columns: ['id', 'name', 'open_balance']
 (2, 'Kotak Bank', 0.0)
 (3, 'HFBC Bank', 0.0)
 (4, 'Daily wages by cash', 0.0)
+(5, 'SBI bank', 0.0)
+(6, 'Canara bank', 0.0)
+(7, 'Canara Bank', 0.0)
+(8, 'Citibank', 0.0)
+(9, 'HDFC Bank', 0.0)
 
 
 ============================================================
@@ -40,4 +47,11 @@ Columns: ['id', 'type', 'transaction_date', 'debit_account_id', 'credit_account_
 (2, 'income', 'null', None, 2, 2, None, 1000.0, 'selling pocket computer')
 (3, 'expense', '2026-06-23', 3, None, None, 3, 250.0, 'AMC cost of AC')
 (4, 'income', '2026-06-25', None, 4, 4, None, 100.0, 'Paid $100 as Daily wages by cash')
+(5, 'transfer', '2022-09-01', 5, 6, None, None, 2000.0, 'transfer of funds')
+(6, 'transfer', '2026-06-28', 5, 6, None, None, 2000.0, None)
+(7, 'transfer', '2026-06-28', 5, 6, None, None, 2000.0, None)
+(8, 'transfer', '2026-06-28', 5, 6, None, None, 2000.0, 'Transfer of $2000 from Canara bank to SBI bank')
+(9, 'income', '2026-06-28', None, 7, 5, None, 1000.0, 'Added $1000 to Canara Bank (Today')
+(10, 'transfer', '2026-06-28', 8, 2, None, None, 100.0, 'Transfer of $100 from Kotak Bank to Citibank')
+(11, 'income', '2026-06-28', None, 9, 6, None, 100.0, 'Sold furniture for $100')
 
