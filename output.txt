@@ -10,6 +10,9 @@ Columns: ['id', 'type', 'name']
 (4, 'income', 'Daily wages')
 (5, 'income', '')
 (6, 'income', 'Sale of furniture')
+(7, 'income', 'None')
+(8, 'income', 'Wages')
+(9, 'expense', 'Coffee')
 
 
 ============================================================
@@ -17,9 +20,9 @@ TABLE: sqlite_sequence
 ============================================================
 Columns: ['name', 'seq']
 
-('ACCOUNTS', 9)
-('CATEGORY', 6)
-('TRANSACTIONS', 11)
+('ACCOUNTS', 11)
+('CATEGORY', 9)
+('TRANSACTIONS', 18)
 
 
 ============================================================
@@ -36,6 +39,8 @@ Columns: ['id', 'name', 'open_balance']
 (7, 'Canara Bank', 0.0)
 (8, 'Citibank', 0.0)
 (9, 'HDFC Bank', 0.0)
+(10, 'None', 0.0)
+(11, 'Cash', 0.0)
 
 
 ============================================================
@@ -54,4 +59,11 @@ Columns: ['id', 'type', 'transaction_date', 'debit_account_id', 'credit_account_
 (9, 'income', '2026-06-28', None, 7, 5, None, 1000.0, 'Added $1000 to Canara Bank (Today')
 (10, 'transfer', '2026-06-28', 8, 2, None, None, 100.0, 'Transfer of $100 from Kotak Bank to Citibank')
 (11, 'income', '2026-06-28', None, 9, 6, None, 100.0, 'Sold furniture for $100')
+(12, 'income', '2026-06-29', None, 10, 7, None, 100.0, 'added 100$')
+(13, 'income', '2026-06-29', None, 10, 8, None, 100.0, 'Paid $100 wages')
+(14, 'expense', '2026-06-29', 11, None, None, 9, 15.0, 'Spent $15 from Cash on Coffee')
+(15, 'income', '2026-06-29', None, 7, 1, None, 2000.0, 'Got $2000 for software sales')
+(16, 'income', '2026-06-29', None, 5, 8, None, 100.0, 'Paid wages of $100 to daily workers')
+(17, 'income', '2026-06-29', None, 7, 1, None, 2000.0, 'Income of $2000.0 to Canara Bank under category Sales')
+(18, 'expense', '2026-06-29', 11, None, None, 9, 15.0, 'Expense of $15.0 from Cash under category Coffee')
 
