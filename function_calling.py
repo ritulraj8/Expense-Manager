@@ -35,6 +35,50 @@ def get_or_create_account(cursor, name):
     return cursor.lastrowid
 
 
+def find_account_case_insensitive(cursor, name):
+    if not name:
+        return None, None
+    name = str(name).strip()
+    # Try exact case-insensitive match
+    cursor.execute("SELECT id, name FROM ACCOUNTS WHERE LOWER(name) = ?", (name.lower(),))
+    row = cursor.fetchone()
+    if row:
+        return row[0], row[1]
+    
+    # Try substring match
+    cursor.execute("SELECT id, name FROM ACCOUNTS")
+    all_accounts = cursor.fetchall()
+    for acc_id, acc_name in all_accounts:
+        acc_name_lower = acc_name.lower()
+        name_lower = name.lower()
+        if acc_name_lower in name_lower or name_lower in acc_name_lower:
+            return acc_id, acc_name
+            
+    return None, None
+
+
+def find_category_case_insensitive(cursor, name, type_):
+    if not name:
+        return None, None
+    name = str(name).strip()
+    # Try exact case-insensitive match
+    cursor.execute("SELECT id, name FROM CATEGORY WHERE LOWER(name) = ? AND type = ?", (name.lower(), type_))
+    row = cursor.fetchone()
+    if row:
+        return row[0], row[1]
+    
+    # Try substring match
+    cursor.execute("SELECT id, name FROM CATEGORY WHERE type = ?", (type_,))
+    all_categories = cursor.fetchall()
+    for cat_id, cat_name in all_categories:
+        cat_name_lower = cat_name.lower()
+        name_lower = name.lower()
+        if cat_name_lower in name_lower or name_lower in cat_name_lower:
+            return cat_id, cat_name
+            
+    return None, None
+
+
 def get_or_create_category(cursor, name, type_):
     cursor.execute("SELECT id FROM CATEGORY WHERE name = ? AND type = ?", (name, type_))
     row = cursor.fetchone()
@@ -48,20 +92,61 @@ def get_or_create_category(cursor, name, type_):
 # Tools
 # ---------------------------
 
-def add_income(amount: float, account: str, category: str, narration: str = None, date: str = None):
+def add_income(amount: float = None, account: str = None, category: str = None, narration: str = None, date: str = None):
     """
     Add an income transaction.
     """
+    try:
+        if amount is not None:
+            amount = float(amount)
+    except (ValueError, TypeError):
+        amount = None
+
+    missing_fields = []
+    
     if not date:
-        date = datetime.now().strftime("%Y-%m-%d")
+        missing_fields.append("date")
+        
+    if amount is None or amount <= 0:
+        missing_fields.append("amount")
+        
+    db_account_name = None
+    if not account:
+        missing_fields.append("credited account")
+    else:
+        conn = sqlite3.connect("ritul.db")
+        cursor = conn.cursor()
+        acc_id, db_account_name = find_account_case_insensitive(cursor, account)
+        conn.close()
+        if not acc_id:
+            missing_fields.append(f"credited account '{account}' (not found in database)")
+            
+    db_category_name = None
+    if not category:
+        missing_fields.append("income category")
+    else:
+        conn = sqlite3.connect("ritul.db")
+        cursor = conn.cursor()
+        cat_id, db_category_name = find_category_case_insensitive(cursor, category, "income")
+        conn.close()
+        if not cat_id:
+            missing_fields.append(f"income category '{category}' (not found in database)")
+            
+    if missing_fields:
+        return {
+            "status": "error",
+            "message": f"Validation Error: Could not determine mandatory fields: {', '.join(missing_fields)}"
+        }
+        
     if not narration:
-        narration = f"Income of ${amount} to {account} under category {category}"
+        narration = f"Income of ${amount} to {db_account_name} under category {db_category_name}"
+        
     conn = sqlite3.connect("ritul.db")
     cursor = conn.cursor()
     try:
         debit_acc_id = None
-        credit_acc_id = get_or_create_account(cursor, account)
-        cat_id = get_or_create_category(cursor, category, "income")
+        credit_acc_id = get_or_create_account(cursor, db_account_name)
+        cat_id = get_or_create_category(cursor, db_category_name, "income")
         cursor.execute("""
             INSERT INTO TRANSACTIONS (type, transaction_date, debit_account_id, credit_account_id, income_category_id, amount, narration)
             VALUES ('income', ?, ?, ?, ?, ?, ?)
@@ -69,7 +154,7 @@ def add_income(amount: float, account: str, category: str, narration: str = None
         conn.commit()
         return {
             "status": "success",
-            "message": f"Added income transaction of ${amount} to {account} under category {category}."
+            "message": f"Added income transaction of ${amount} to {db_account_name} under category {db_category_name}."
         }
     except Exception as e:
         conn.rollback()
@@ -78,20 +163,61 @@ def add_income(amount: float, account: str, category: str, narration: str = None
         conn.close()
 
 
-def add_expense(amount: float, account: str, category: str, narration: str = None, date: str = None):
+def add_expense(amount: float = None, account: str = None, category: str = None, narration: str = None, date: str = None):
     """
     Add an expense transaction.
     """
+    try:
+        if amount is not None:
+            amount = float(amount)
+    except (ValueError, TypeError):
+        amount = None
+
+    missing_fields = []
+    
     if not date:
-        date = datetime.now().strftime("%Y-%m-%d")
+        missing_fields.append("date")
+        
+    if amount is None or amount <= 0:
+        missing_fields.append("amount")
+        
+    db_account_name = None
+    if not account:
+        missing_fields.append("debited account")
+    else:
+        conn = sqlite3.connect("ritul.db")
+        cursor = conn.cursor()
+        acc_id, db_account_name = find_account_case_insensitive(cursor, account)
+        conn.close()
+        if not acc_id:
+            missing_fields.append(f"debited account '{account}' (not found in database)")
+            
+    db_category_name = None
+    if not category:
+        missing_fields.append("expense category")
+    else:
+        conn = sqlite3.connect("ritul.db")
+        cursor = conn.cursor()
+        cat_id, db_category_name = find_category_case_insensitive(cursor, category, "expense")
+        conn.close()
+        if not cat_id:
+            missing_fields.append(f"expense category '{category}' (not found in database)")
+            
+    if missing_fields:
+        return {
+            "status": "error",
+            "message": f"Validation Error: Could not determine mandatory fields: {', '.join(missing_fields)}"
+        }
+        
     if not narration:
-        narration = f"Expense of ${amount} from {account} under category {category}"
+        narration = f"Expense of ${amount} from {db_account_name} under category {db_category_name}"
+        
     conn = sqlite3.connect("ritul.db")
     cursor = conn.cursor()
     try:
-        debit_acc_id = get_or_create_account(cursor, account)
+        debit_acc_id = get_or_create_account(cursor, db_account_name)
         credit_acc_id = None
-        cat_id = get_or_create_category(cursor, category, "expense")
+        cat_id = get_or_create_category(cursor, db_category_name, "expense")
         cursor.execute("""
             INSERT INTO TRANSACTIONS (type, transaction_date, debit_account_id, credit_account_id, expense_category_id, amount, narration)
             VALUES ('expense', ?, ?, ?, ?, ?, ?)
@@ -99,7 +225,7 @@ def add_expense(amount: float, account: str, category: str, narration: str = Non
         conn.commit()
         return {
             "status": "success",
-            "message": f"Added expense transaction of ${amount} from {account} under category {category}."
+            "message": f"Added expense transaction of ${amount} from {db_account_name} under category {db_category_name}."
         }
     except Exception as e:
         conn.rollback()
@@ -108,19 +234,60 @@ def add_expense(amount: float, account: str, category: str, narration: str = Non
         conn.close()
 
 
-def add_transfer(amount: float, from_account: str, to_account: str, narration: str = None, date: str = None):
+def add_transfer(amount: float = None, from_account: str = None, to_account: str = None, narration: str = None, date: str = None):
     """
     Add a transfer transaction.
     """
+    try:
+        if amount is not None:
+            amount = float(amount)
+    except (ValueError, TypeError):
+        amount = None
+
+    missing_fields = []
+    
     if not date:
-        date = datetime.now().strftime("%Y-%m-%d")
+        missing_fields.append("date")
+        
+    if amount is None or amount <= 0:
+        missing_fields.append("amount")
+        
+    db_from_account = None
+    if not from_account:
+        missing_fields.append("credited account")
+    else:
+        conn = sqlite3.connect("ritul.db")
+        cursor = conn.cursor()
+        acc_id, db_from_account = find_account_case_insensitive(cursor, from_account)
+        conn.close()
+        if not acc_id:
+            missing_fields.append(f"credited account '{from_account}' (not found in database)")
+            
+    db_to_account = None
+    if not to_account:
+        missing_fields.append("debited account")
+    else:
+        conn = sqlite3.connect("ritul.db")
+        cursor = conn.cursor()
+        acc_id, db_to_account = find_account_case_insensitive(cursor, to_account)
+        conn.close()
+        if not acc_id:
+            missing_fields.append(f"debited account '{to_account}' (not found in database)")
+            
+    if missing_fields:
+        return {
+            "status": "error",
+            "message": f"Validation Error: Could not determine mandatory fields: {', '.join(missing_fields)}"
+        }
+        
     if not narration:
-        narration = f"Transfer of ${amount} from {from_account} to {to_account}"
+        narration = f"Transfer of ${amount} from {db_from_account} to {db_to_account}"
+        
     conn = sqlite3.connect("ritul.db")
     cursor = conn.cursor()
     try:
-        debit_acc_id = get_or_create_account(cursor, to_account)
-        credit_acc_id = get_or_create_account(cursor, from_account)
+        debit_acc_id = get_or_create_account(cursor, db_to_account)
+        credit_acc_id = get_or_create_account(cursor, db_from_account)
         cursor.execute("""
             INSERT INTO TRANSACTIONS (type, transaction_date, debit_account_id, credit_account_id, amount, narration)
             VALUES ('transfer', ?, ?, ?, ?, ?)
@@ -128,7 +295,7 @@ def add_transfer(amount: float, from_account: str, to_account: str, narration: s
         conn.commit()
         return {
             "status": "success",
-            "message": f"Transferred ${amount} from {from_account} to {to_account}."
+            "message": f"Transferred ${amount} from {db_from_account} to {db_to_account}."
         }
     except Exception as e:
         conn.rollback()
@@ -293,6 +460,28 @@ def has_date(text):
 
 
 def run_tool_calls(llm, messages):
+    has_system = any(msg.get("role") == "system" for msg in messages)
+    if not has_system:
+        messages.insert(0, {
+            "role": "system",
+            "content": (
+                "You are a precise financial transaction assistant. Categorize user transactions to the correct tool:\n"
+                "- `add_income`: Use when money is received/earned/got.\n"
+                "  Example user prompts:\n"
+                "  * 'Got $2000 for software sales into Federal Bank' -> call add_income(amount=2000, account='Federal Bank', category='software sales')\n"
+                "  * 'received $50 salary in Cash' -> call add_income(amount=50, account='Cash', category='Salary')\n"
+                "- `add_expense`: Use when money is paid/spent/given (e.g. wages paid, buying items).\n"
+                "  Example user prompts:\n"
+                "  * 'Paid wages of $100 to daily workers from SBI' -> call add_expense(amount=100, account='SBI', category='Wages')\n"
+                "  * 'spent $10 on coffee from Kotak Bank' -> call add_expense(amount=10, account='Kotak Bank', category='Coffee')\n"
+                "- `add_transfer`: Use when transferring money between two accounts.\n"
+                "  Example user prompt: 'transfer $200 from canara to sbi' -> call add_transfer(amount=200, from_account='canara', to_account='sbi')\n\n"
+                "Strict classification rules:\n"
+                "1. Prompts containing 'Paid', 'paid', 'spent', 'spent wages', or 'Paid wages' are strictly EXPENSES. You MUST call `add_expense`.\n"
+                "2. Prompts containing 'Got', 'received', 'earned', 'income' are strictly INCOME. You MUST call `add_income`."
+            )
+        })
+
     for msg in messages:
         if msg.get("role") == "user" and isinstance(msg.get("content"), str):
             if not has_date(msg["content"]):
@@ -402,6 +591,83 @@ def generate_final_answer(llm, messages, content, results):
     )
 
     return final_response["choices"][0]["message"]["content"]
+
+
+# ---------------------------
+# Prompt Validation Helpers
+# ---------------------------
+
+def check_amount_in_prompt(prompt):
+    """
+    Check if an amount is mentioned in the prompt (excluding year numbers in dates).
+    """
+    if not isinstance(prompt, str):
+        return False
+    
+    # Remove dates to avoid matching date numbers as amounts
+    cleaned = prompt
+    cleaned = re.sub(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b', ' ', cleaned)
+    cleaned = re.sub(r'\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b', ' ', cleaned)
+    # Remove standalone years (like 2020-2039, 1900-1999)
+    cleaned = re.sub(r'\b(202\d|203\d|19\d\d)\b', ' ', cleaned)
+    
+    # Check for digits
+    if re.search(r'\d+', cleaned):
+        return True
+        
+    # Check for number words
+    number_words = [
+        "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+        "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen",
+        "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty", "sixty", "seventy",
+        "eighty", "ninety", "hundred", "thousand", "lakh", "million", "crore"
+    ]
+    prompt_lower = cleaned.lower()
+    for word in number_words:
+        if re.search(r'\b' + word + r'\b', prompt_lower):
+            return True
+            
+    return False
+
+
+def check_bank_in_prompt(prompt):
+    """
+    Check if a bank or account is mentioned in the prompt.
+    """
+    if not isinstance(prompt, str):
+        return False
+        
+    try:
+        conn = sqlite3.connect("ritul.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT name FROM ACCOUNTS")
+        accounts = [row[0].lower() for row in cursor.fetchall()]
+        conn.close()
+    except Exception as e:
+        print("Error fetching accounts:", e)
+        accounts = []
+        
+    prompt_lower = prompt.lower()
+    
+    # General bank/payment terms
+    general_terms = ["bank", "wallet", "cash", "account", "card", "online", "gpay", "paytm", "phonepe", "upi"]
+    for term in general_terms:
+        if term in prompt_lower:
+            return True
+            
+    # Database account names
+    for acc in accounts:
+        if acc in prompt_lower:
+            return True
+        # Check individual words of the accounts
+        words = acc.split()
+        for w in words:
+            # ignore generic words and short words
+            if w not in ["bank", "by", "cash", "account"] and len(w) > 2:
+                if w in prompt_lower:
+                    return True
+                    
+    return False
 
 
 # ---------------------------

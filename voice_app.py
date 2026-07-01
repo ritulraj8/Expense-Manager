@@ -991,6 +991,18 @@ class AuraVoiceApp(ctk.CTk):
             self.show_toast("Please enter or dictate a command!", "warning")
             return
             
+        from function_calling import check_amount_in_prompt, check_bank_in_prompt
+        
+        # Check if amount is mentioned
+        if not check_amount_in_prompt(prompt):
+            self.on_command_success("Amount not mentioned.", False)
+            return
+            
+        # Check if bank/account is mentioned
+        if not check_bank_in_prompt(prompt):
+            self.on_command_success("No bank account mentioned. Please add bank accounts.", False)
+            return
+            
         if self.model_loading or not self.llm:
             self.show_toast("AI Agent is loading. Please wait...", "warning")
             return
@@ -1050,8 +1062,12 @@ class AuraVoiceApp(ctk.CTk):
             self.show_toast("Transaction successful!", "success")
         else:
             self.update_app_state("READY")
-            self.feedback_text.configure(text=feedback, text_color=self.colors["text_bright"])
-            self.show_toast("Query processed", "info")
+            if "validation error" in feedback.lower() or "not mentioned" in feedback.lower():
+                self.feedback_text.configure(text=feedback, text_color=self.colors["accent_error"])
+                self.show_toast("Validation failed", "warning")
+            else:
+                self.feedback_text.configure(text=feedback, text_color=self.colors["text_bright"])
+                self.show_toast("Query processed", "info")
             
         self.command_input.delete(0, tk.END)
         self.refresh_dashboard()
