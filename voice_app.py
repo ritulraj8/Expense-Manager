@@ -471,8 +471,7 @@ class AuraVoiceApp(ctk.CTk):
     def use_template(self, text):
         self.command_input.delete(0, tk.END)
         self.command_input.insert(0, text)
-        self.show_toast("Template selected! Submitting...", "info")
-        self.submit_command()
+        self.show_toast("Template selected! You can now edit and click Submit.", "info")
 
     # ==========================================
     # RESPONSIVE LAYOUT MANAGER (Desktop "Media Query")
@@ -538,8 +537,8 @@ class AuraVoiceApp(ctk.CTk):
                     a.open_balance,
                     COALESCE((SELECT SUM(amount) FROM TRANSACTIONS WHERE type = 'income' AND credit_account_id = a.id), 0.0) as total_income,
                     COALESCE((SELECT SUM(amount) FROM TRANSACTIONS WHERE type = 'expense' AND debit_account_id = a.id), 0.0) as total_expense,
-                    COALESCE((SELECT SUM(amount) FROM TRANSACTIONS WHERE type = 'transfer' AND debit_account_id = a.id), 0.0) as total_transfer_in,
-                    COALESCE((SELECT SUM(amount) FROM TRANSACTIONS WHERE type = 'transfer' AND credit_account_id = a.id), 0.0) as total_transfer_out
+                    COALESCE((SELECT SUM(amount) FROM TRANSACTIONS WHERE type = 'transfer' AND credit_account_id = a.id), 0.0) as total_transfer_in,
+                    COALESCE((SELECT SUM(amount) FROM TRANSACTIONS WHERE type = 'transfer' AND debit_account_id = a.id), 0.0) as total_transfer_out
                 FROM ACCOUNTS a;
             """)
             accounts = cursor.fetchall()
@@ -643,7 +642,7 @@ class AuraVoiceApp(ctk.CTk):
             else:
                 type_sym = "⇄"
                 color = self.colors["accent_secondary"]
-                desc = f"Transfer: {credit_acc} → {debit_acc}"
+                desc = f"Transfer: {debit_acc} → {credit_acc}"
                 details = narration or "Fund Transfer"
                 
             if details and len(details) > 35:
@@ -978,9 +977,8 @@ class AuraVoiceApp(ctk.CTk):
         else:
             self.command_input.delete(0, tk.END)
             self.command_input.insert(0, text)
-            self.show_toast("Speech transcribed! Submitting...", "info")
-            # Automatically execute the transcribed query
-            self.submit_command()
+            self.update_app_state("READY")
+            self.show_toast("Speech transcribed! You can edit and click Submit.", "info")
 
     # ==========================================
     # LLM AGENT INTEGRATION PIPELINE

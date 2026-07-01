@@ -5,14 +5,17 @@ TABLE: CATEGORY
 Columns: ['id', 'type', 'name']
 
 (1, 'income', 'Sales')
-(2, 'income', 'Selling a laptop')
-(3, 'expense', 'AC')
-(4, 'income', 'Daily wages')
-(5, 'income', '')
-(6, 'income', 'Sale of furniture')
-(7, 'income', 'None')
-(8, 'income', 'Wages')
-(9, 'expense', 'Coffee')
+(2, 'income', 'AMC')
+(3, 'income', 'Misc. Income')
+(4, 'expense', 'Salary')
+(5, 'expense', 'Infrastructure')
+(6, 'expense', 'Wages')
+(7, 'expense', 'Electricity')
+(8, 'expense', 'Water')
+(9, 'expense', 'Income Tax')
+(10, 'expense', 'Corporation Expenses')
+(11, 'expense', 'Groceries')
+(12, 'expense', 'Coffee')
 
 
 ============================================================
@@ -20,9 +23,9 @@ TABLE: sqlite_sequence
 ============================================================
 Columns: ['name', 'seq']
 
-('ACCOUNTS', 11)
-('CATEGORY', 9)
-('TRANSACTIONS', 18)
+('ACCOUNTS', 9)
+('CATEGORY', 13)
+('TRANSACTIONS', 14)
 
 
 ============================================================
@@ -30,17 +33,14 @@ TABLE: ACCOUNTS
 ============================================================
 Columns: ['id', 'name', 'open_balance']
 
-(1, 'City Bank', 0.0)
-(2, 'Kotak Bank', 0.0)
-(3, 'HFBC Bank', 0.0)
-(4, 'Daily wages by cash', 0.0)
-(5, 'SBI bank', 0.0)
-(6, 'Canara bank', 0.0)
-(7, 'Canara Bank', 0.0)
-(8, 'Citibank', 0.0)
-(9, 'HDFC Bank', 0.0)
-(10, 'None', 0.0)
-(11, 'Cash', 0.0)
+(1, 'SBI', 10000.0)
+(2, 'Federal Bank', 20000.0)
+(3, 'Cash', 1500.0)
+(4, 'Insta Money', 700.0)
+(5, 'HDFC Bank', 0.0)
+(7, 'kotak bank', 0.0)
+(8, 'Punjab Bank', 0.0)
+(9, 'Dhanlaxmi bank', 0.0)
 
 
 ============================================================
@@ -48,22 +48,18 @@ TABLE: TRANSACTIONS
 ============================================================
 Columns: ['id', 'type', 'transaction_date', 'debit_account_id', 'credit_account_id', 'income_category_id', 'expense_category_id', 'amount', 'narration']
 
-(1, 'income', '2026-06-25', None, 1, 1, None, 1000.0, 'selling pocket computer')
-(2, 'income', 'null', None, 2, 2, None, 1000.0, 'selling pocket computer')
-(3, 'expense', '2026-06-23', 3, None, None, 3, 250.0, 'AMC cost of AC')
-(4, 'income', '2026-06-25', None, 4, 4, None, 100.0, 'Paid $100 as Daily wages by cash')
-(5, 'transfer', '2022-09-01', 5, 6, None, None, 2000.0, 'transfer of funds')
-(6, 'transfer', '2026-06-28', 5, 6, None, None, 2000.0, None)
-(7, 'transfer', '2026-06-28', 5, 6, None, None, 2000.0, None)
-(8, 'transfer', '2026-06-28', 5, 6, None, None, 2000.0, 'Transfer of $2000 from Canara bank to SBI bank')
-(9, 'income', '2026-06-28', None, 7, 5, None, 1000.0, 'Added $1000 to Canara Bank (Today')
-(10, 'transfer', '2026-06-28', 8, 2, None, None, 100.0, 'Transfer of $100 from Kotak Bank to Citibank')
-(11, 'income', '2026-06-28', None, 9, 6, None, 100.0, 'Sold furniture for $100')
-(12, 'income', '2026-06-29', None, 10, 7, None, 100.0, 'added 100$')
-(13, 'income', '2026-06-29', None, 10, 8, None, 100.0, 'Paid $100 wages')
-(14, 'expense', '2026-06-29', 11, None, None, 9, 15.0, 'Spent $15 from Cash on Coffee')
-(15, 'income', '2026-06-29', None, 7, 1, None, 2000.0, 'Got $2000 for software sales')
-(16, 'income', '2026-06-29', None, 5, 8, None, 100.0, 'Paid wages of $100 to daily workers')
-(17, 'income', '2026-06-29', None, 7, 1, None, 2000.0, 'Income of $2000.0 to Canara Bank under category Sales')
-(18, 'expense', '2026-06-29', 11, None, None, 9, 15.0, 'Expense of $15.0 from Cash under category Coffee')
+(1, 'expense', '2026-07-01', 1, None, None, 6, 100.0, 'Paid wages')
+(2, 'transfer', '2026-07-01', 1, 2, None, None, 1000.0, 'Transfer of $1000.0 from SBI to Federal Bank')
+(3, 'transfer', '2026-07-01', 1, 2, None, None, 1000.0, 'Transfer of $1000.0 from SBI to Federal Bank')
+(4, 'expense', '2026-07-01', 1, None, None, 11, 50.0, 'Expense of $50.0 from SBI under category Groceries')
+(5, 'expense', '2026-07-01', 1, None, None, 11, 20.0, 'Expense of $20.0 from SBI under category Groceries')
+(6, 'expense', '2026-07-01', 3, None, None, 12, 15.0, 'Expense of $15.0 from Cash under category Coffee')
+(7, 'transfer', '2026-07-01', 5, 1, None, None, 100.0, 'Transfer of $100.0 from HDFC Bank to SBI')
+(8, 'transfer', '2026-07-01', 5, 1, None, None, 50.0, 'Transfer of $50.0 from HDFC Bank to SBI')
+(9, 'transfer', '2026-07-01', None, 7, None, None, 20.0, 'Transfer of $20.0 from sent to kotak bank')
+(10, 'expense', '2026-07-01', 3, None, None, 12, 15.0, 'Expense of $15.0 from Cash under category Coffee')
+(11, 'income', '2026-07-01', None, 8, 13, None, 300.0, 'Sold pocket computer')
+(12, 'income', '2026-07-01', None, 1, 1, None, 100.0, 'Income of $100.0 to SBI under category Sales')
+(13, 'expense', '2026-07-01', 1, None, None, 11, 45.0, 'Expense of $45.0 from SBI under category Groceries')
+(14, 'income', '2026-07-01', None, 9, 1, None, 100.0, 'sold pocket computer')
 

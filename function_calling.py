@@ -57,23 +57,46 @@ def find_account_case_insensitive(cursor, name):
     return None, None
 
 
+def get_word_root(word):
+    word = word.lower().strip()
+    if word.endswith('ies') and len(word) > 3:
+        return word[:-3] + 'y'
+    for suffix in ['ing', 'ed', 'es', 's']:
+        if word.endswith(suffix) and len(word) > len(suffix) + 1:
+            return word[:-len(suffix)]
+    return word
+
+
 def find_category_case_insensitive(cursor, name, type_):
     if not name:
         return None, None
     name = str(name).strip()
+    lower_name = name.lower()
+    
     # Try exact case-insensitive match
     cursor.execute("SELECT id, name FROM CATEGORY WHERE LOWER(name) = ? AND type = ?", (name.lower(), type_))
     row = cursor.fetchone()
     if row:
         return row[0], row[1]
-    
-    # Try substring match
+                    
+    # 2. Word-level Root/Stem Match
     cursor.execute("SELECT id, name FROM CATEGORY WHERE type = ?", (type_,))
     all_categories = cursor.fetchall()
+    
+    input_words = [get_word_root(w) for w in re.findall(r'\w+', lower_name) if len(w) > 1]
+    
+    for cat_id, cat_name in all_categories:
+        cat_words = [get_word_root(w) for w in re.findall(r'\w+', cat_name.lower()) if len(w) > 1]
+        
+        # Check if any input root word matches any category root word
+        for iw in input_words:
+            if iw in cat_words:
+                return cat_id, cat_name
+                
+    # 3. Substring match fallback
     for cat_id, cat_name in all_categories:
         cat_name_lower = cat_name.lower()
-        name_lower = name.lower()
-        if cat_name_lower in name_lower or name_lower in cat_name_lower:
+        if cat_name_lower in lower_name or lower_name in cat_name_lower:
             return cat_id, cat_name
             
     return None, None
@@ -119,7 +142,7 @@ def add_income(amount: float = None, account: str = None, category: str = None, 
         acc_id, db_account_name = find_account_case_insensitive(cursor, account)
         conn.close()
         if not acc_id:
-            missing_fields.append(f"credited account '{account}' (not found in database)")
+            db_account_name = account.strip()
             
     db_category_name = None
     if not category:
@@ -130,7 +153,7 @@ def add_income(amount: float = None, account: str = None, category: str = None, 
         cat_id, db_category_name = find_category_case_insensitive(cursor, category, "income")
         conn.close()
         if not cat_id:
-            missing_fields.append(f"income category '{category}' (not found in database)")
+            db_category_name = category.strip()
             
     if missing_fields:
         return {
@@ -190,7 +213,7 @@ def add_expense(amount: float = None, account: str = None, category: str = None,
         acc_id, db_account_name = find_account_case_insensitive(cursor, account)
         conn.close()
         if not acc_id:
-            missing_fields.append(f"debited account '{account}' (not found in database)")
+            db_account_name = account.strip()
             
     db_category_name = None
     if not category:
@@ -201,7 +224,7 @@ def add_expense(amount: float = None, account: str = None, category: str = None,
         cat_id, db_category_name = find_category_case_insensitive(cursor, category, "expense")
         conn.close()
         if not cat_id:
-            missing_fields.append(f"expense category '{category}' (not found in database)")
+            db_category_name = category.strip()
             
     if missing_fields:
         return {
@@ -261,7 +284,7 @@ def add_transfer(amount: float = None, from_account: str = None, to_account: str
         acc_id, db_from_account = find_account_case_insensitive(cursor, from_account)
         conn.close()
         if not acc_id:
-            missing_fields.append(f"credited account '{from_account}' (not found in database)")
+            db_from_account = from_account.strip()
             
     db_to_account = None
     if not to_account:
@@ -272,7 +295,7 @@ def add_transfer(amount: float = None, from_account: str = None, to_account: str
         acc_id, db_to_account = find_account_case_insensitive(cursor, to_account)
         conn.close()
         if not acc_id:
-            missing_fields.append(f"debited account '{to_account}' (not found in database)")
+            db_to_account = to_account.strip()
             
     if missing_fields:
         return {
@@ -286,8 +309,8 @@ def add_transfer(amount: float = None, from_account: str = None, to_account: str
     conn = sqlite3.connect("ritul.db")
     cursor = conn.cursor()
     try:
-        debit_acc_id = get_or_create_account(cursor, db_to_account)
-        credit_acc_id = get_or_create_account(cursor, db_from_account)
+        debit_acc_id = get_or_create_account(cursor, db_from_account)
+        credit_acc_id = get_or_create_account(cursor, db_to_account)
         cursor.execute("""
             INSERT INTO TRANSACTIONS (type, transaction_date, debit_account_id, credit_account_id, amount, narration)
             VALUES ('transfer', ?, ?, ?, ?, ?)
@@ -462,24 +485,54 @@ def has_date(text):
 def run_tool_calls(llm, messages):
     has_system = any(msg.get("role") == "system" for msg in messages)
     if not has_system:
+        income_cats = []
+        expense_cats = []
+        existing_accounts = []
+        try:
+            conn = sqlite3.connect("ritul.db")
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM CATEGORY WHERE type = 'income'")
+            income_cats = [row[0] for row in cursor.fetchall()]
+            cursor.execute("SELECT name FROM CATEGORY WHERE type = 'expense'")
+            expense_cats = [row[0] for row in cursor.fetchall()]
+            cursor.execute("SELECT name FROM ACCOUNTS")
+            existing_accounts = [row[0] for row in cursor.fetchall()]
+            conn.close()
+        except Exception as e:
+            print("Error fetching database context for prompt:", e)
+
+        system_content = (
+            "You are a precise financial transaction assistant. Categorize user transactions to the correct tool:\n"
+            "- `add_income`: Use when money is received/earned/got.\n"
+            "  Example user prompts:\n"
+            "  * 'Got $2000 for software sales into Federal Bank' -> call add_income(amount=2000, account='Federal Bank', category='sales')\n"
+            "  * 'received $50 salary in Cash' -> call add_income(amount=50, account='Cash', category='Salary')\n"
+            "- `add_expense`: Use when money is paid/spent/given (e.g. wages paid, buying items).\n"
+            "  Example user prompts:\n"
+            "  * 'Paid wages of $100 to daily workers from SBI' -> call add_expense(amount=100, account='SBI', category='Wages')\n"
+            "  * 'spent $10 on coffee from Kotak Bank' -> call add_expense(amount=10, account='Kotak Bank', category='Coffee')\n"
+            "- `add_transfer`: Use when transferring money between two accounts.\n"
+            "  Example user prompt: 'transfer $200 from canara to sbi' -> call add_transfer(amount=200, from_account='canara', to_account='sbi')\n\n"
+        )
+        
+        if existing_accounts:
+            system_content += f"Existing accounts in database: {', '.join(existing_accounts)}\n"
+        if income_cats:
+            system_content += f"Existing income categories in database: {', '.join(income_cats)}\n"
+        if expense_cats:
+            system_content += f"Existing expense categories in database: {', '.join(expense_cats)}\n"
+
+        system_content += (
+            "\nStrict classification and mapping rules:\n"
+            "1. Prompts containing 'Paid', 'paid', 'spent', 'spent wages', or 'Paid wages' are strictly EXPENSES. You MUST call `add_expense`.\n"
+            "2. Prompts containing 'Got', 'received', 'earned', 'income' are strictly INCOME. You MUST call `add_income`.\n"
+            "3. For a transaction to be classified as a transfer (`add_transfer`), BOTH the source (from) and destination (to) accounts must be explicitly mentioned. If only one account is mentioned (e.g. 'transfer $50 from SBI' or 'sent $20 to Kotak Bank'), do NOT call `add_transfer`. Instead, call `add_income` (if the amount is credited to that account) or `add_expense` (if the amount is debited from that account).\n"
+            "4. MAPPING RULE: Look at the existing accounts and categories listed above. If the user mentions a category or account that is conceptually the same as one of the existing ones (e.g. 'sold', 'selling', or 'sale of product' maps to 'Sales'; 'wages paid' or 'labor cost' maps to 'Wages'; 'coffee and snacks' or 'tea' maps to 'Coffee'; 'grocery shopping' or 'supermarket' maps to 'Groceries'; 'electricity charge' or 'electric power' maps to 'Electricity'), you MUST use the exact name of the existing account/category from the database. Do NOT create a new name if an existing name covers it."
+        )
+
         messages.insert(0, {
             "role": "system",
-            "content": (
-                "You are a precise financial transaction assistant. Categorize user transactions to the correct tool:\n"
-                "- `add_income`: Use when money is received/earned/got.\n"
-                "  Example user prompts:\n"
-                "  * 'Got $2000 for software sales into Federal Bank' -> call add_income(amount=2000, account='Federal Bank', category='software sales')\n"
-                "  * 'received $50 salary in Cash' -> call add_income(amount=50, account='Cash', category='Salary')\n"
-                "- `add_expense`: Use when money is paid/spent/given (e.g. wages paid, buying items).\n"
-                "  Example user prompts:\n"
-                "  * 'Paid wages of $100 to daily workers from SBI' -> call add_expense(amount=100, account='SBI', category='Wages')\n"
-                "  * 'spent $10 on coffee from Kotak Bank' -> call add_expense(amount=10, account='Kotak Bank', category='Coffee')\n"
-                "- `add_transfer`: Use when transferring money between two accounts.\n"
-                "  Example user prompt: 'transfer $200 from canara to sbi' -> call add_transfer(amount=200, from_account='canara', to_account='sbi')\n\n"
-                "Strict classification rules:\n"
-                "1. Prompts containing 'Paid', 'paid', 'spent', 'spent wages', or 'Paid wages' are strictly EXPENSES. You MUST call `add_expense`.\n"
-                "2. Prompts containing 'Got', 'received', 'earned', 'income' are strictly INCOME. You MUST call `add_income`."
-            )
+            "content": system_content
         })
 
     for msg in messages:
